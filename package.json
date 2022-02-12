@@ -1,0 +1,19 @@
+{
+	"name": "bootcamp-app",
+	"version": "1.0.0",
+	"description": "bootcamp app",
+	"main": "server.js",
+	"scripts": {
+		"start": "NODE_ENV=production node server",
+		"dev": "nodemon server.js"
+	},
+	"author": "Lior solomon",
+	"license": "ISC",
+	"dependencies": {
+		"express": "^4.17.2",
+		"dotenv": "^16.0.0"
+	},
+	"devDependencies": {
+		"nodemon": "^2.0.15"
+	}
+}
