@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const slugify = require("slugify");
+const geocoder = require("../utills/geocoder");
+
+
 
 const BootcampSchema = new mongoose.Schema({
     name: {
@@ -34,24 +38,25 @@ const BootcampSchema = new mongoose.Schema({
     },
     address: {
         type: String,
-        required: [true, 'Please add an address'],
+        required: [true, 'Please add an address']
     },
+
     location: {
         // GeoJSON Point
         type: {
             type: String,
-            enum: ['Point'],
+            enum: ['Point']
         },
         coordinates: {
             type: [Number],
-            index: '2dsphere',
+            index: '2dsphere'
         },
         formattedAddress: String,
         street: String,
         city: String,
         state: String,
         zipcode: String,
-        country: String,
+        country: String
     },
     careers: {
         // Array of strings
@@ -98,6 +103,47 @@ const BootcampSchema = new mongoose.Schema({
         default: Date.now,
     },
 
+},
+    {
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true }
+    })
+
+BootcampSchema.pre("save", function (next) {
+    this.slug = slugify(this.name, { lower: true })
+    next();
 })
 
-module.exports = mongoose.model('bootcamp', BootcampSchema);
+BootcampSchema.pre("remove", async function (next) {
+    console.log(`courses removed from bootcamp ${this._id}`);
+    await this.model("Course").deleteMany({ bootcamp: this._id });
+    next();
+})
+
+BootcampSchema.pre("save", async function (next) {
+    const location = await geocoder.geocode(this.address);
+    this.location = {
+        type: "Point",
+        coordinates: [location[0].longitude, location[0].latitude],
+        formattedAddress: location[0].formattedAddress,
+        country: location[0].country,
+        countryCode: location[0].countryCode,
+        city: location[0].city,
+        zipcode: location[0].zipcode,
+        streetName: location[0].streetName,
+        streetNumber: location[0].streetNumber,
+    }
+    this.address = undefined;
+
+    next();
+})
+
+BootcampSchema.virtual("courses", {
+    ref: "Course",
+    localField: "_id",
+    foreignField: "bootcamp",
+    justOne: false
+
+})
+
+module.exports = mongoose.model('Bootcamp', BootcampSchema);
